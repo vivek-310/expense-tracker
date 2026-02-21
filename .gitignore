@@ -1,0 +1,21 @@
+# ── Backend ──────────────────────────────────────────
+backend/.env
+backend/node_modules/
+backend/dist/
+backend/*.log
+backend/tsconfig.build.tsbuildinfo
+
+# ── Flutter ───────────────────────────────────────────
+expense-tracker/.dart_tool/
+expense-tracker/.flutter-plugins
+expense-tracker/.flutter-plugins-dependencies
+expense-tracker/build/
+expense-tracker/.packages
+expense-tracker/pubspec.lock
+
+# ── General ───────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log

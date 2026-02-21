@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // or "mysql" or "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id           Int      @id @default(autoincrement())
+  userId       String   @unique @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  phone        String?
+  currentPlan  String   @default("FREE") // FREE, PRO
+  role         String   @default("USER") // USER, ADMIN
+  status       String   @default("ACTIVE") // ACTIVE, SUSPENDED, DELETED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  subscriptions        Subscription[]
+  userFeatureOverrides UserFeatureOverride[]
+  expenses             Expense[]
+  splits               Split[]
+
+  @@index([email])
+  @@index([userId])
+  @@map("users")
+}
+
+// Subscription model
+model Subscription {
+  id             Int      @id @default(autoincrement())
+  subscriptionId String   @unique @default(uuid())
+  userId         String
+  plan           String // FREE, PRO
+  startDate      DateTime
+  endDate        DateTime?
+  status         String   @default("ACTIVE") // ACTIVE, EXPIRED, CANCELLED
+  autoRenew      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("subscriptions")
+}
+
+// Plan Feature model - Plan-level feature flags
+model PlanFeature {
+  id        Int      @id @default(autoincrement())
+  plan      String // FREE, PRO
+  feature   String // SPLIT, BUDGET, ANALYTICS, etc.
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([plan, feature])
+  @@index([plan])
+  @@map("plan_features")
+}
+
+// User Feature Override model - User-specific feature overrides
+model UserFeatureOverride {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  feature   String // SPLIT, BUDGET, ANALYTICS, etc.
+  enabled   Boolean
+  reason    String? // Optional reason for override (promo, abuse, etc.)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade)
+
+  @@unique([userId, feature])
+  @@index([userId])
+  @@map("user_feature_overrides")
+}
+
+// Expense model
+model Expense {
+  id            Int      @id @default(autoincrement())
+  expenseId     String   @unique @default(uuid())
+  userId        String
+  amount        Float
+  category      String
+  note          String?
+  paymentMethod String
+  date          DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user  User   @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  split Split?
+
+  @@index([userId])
+  @@index([userId, date])
+  @@map("expenses")
+}
+
+// Split model - For expense splitting
+model Split {
+  id          Int      @id @default(autoincrement())
+  expenseId   String   @unique
+  userId      String
+  totalAmount Float
+  splits      Json // Array of { friendId, friendName, amount, settled }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [userId], onDelete: Cascade)
+  expense Expense @relation(fields: [expenseId], references: [expenseId], onDelete: Cascade)
+
+  @@index([expenseId])
+  @@index([userId])
+  @@map("splits")
+}
