@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../config/api_config.dart';
 import 'login_screen.dart';
+import 'admin_users_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -304,6 +305,26 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 32),
+
+                  // Admin Panel
+                  if (user.role.toUpperCase() == 'ADMIN')
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const AdminUsersScreen()),
+                          );
+                        },
+                        icon: const Icon(Icons.shield, color: Colors.white),
+                        label: const Text('Admin Dashboard', style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF8B5CF6),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                      ),
+                    ),
 
                   // Logout Button
                   ElevatedButton.icon(

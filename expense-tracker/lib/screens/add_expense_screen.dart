@@ -113,6 +113,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               note: _notesController.text.trim().isNotEmpty 
                   ? _notesController.text.trim() 
                   : null,
+              paymentMethod: 'UPI',
             ),
           ),
         ),

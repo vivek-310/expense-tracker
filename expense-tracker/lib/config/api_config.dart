@@ -18,4 +18,5 @@ class ApiConfig {
   static const String redeemPromo = '/subscriptions/promo';
   static const String splits = '/splits';
   static const String admin = '/admin';
+  static const String adminUsers = '/admin/users';
 }

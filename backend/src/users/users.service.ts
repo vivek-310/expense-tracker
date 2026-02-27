@@ -69,6 +69,10 @@ export class UsersService {
         await this.usersRepository.updatePlan(userId, plan);
     }
 
+    async findAllWithExpenses(): Promise<any[]> {
+        return this.usersRepository.findAllWithExpenses();
+    }
+
     async updateStatus(userId: string, status: UserStatus): Promise<void> {
         await this.usersRepository.update(userId, { status });
     }

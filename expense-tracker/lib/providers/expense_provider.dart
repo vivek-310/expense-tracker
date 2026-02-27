@@ -108,39 +108,57 @@ class ExpenseProvider with ChangeNotifier {
     }).toList();
   }
 
-  // Calculate total spending
+  // ─── PERSONAL SHARE SPENDING (only your share after splits) ───────────
+
+  /// Total of YOUR SHARE across ALL expenses ever
   double getTotalSpending() {
-    return _expenses.fold(0.0, (sum, expense) => sum + expense.amount);
+    return _expenses.fold(0.0, (sum, expense) => sum + expense.personalShare);
   }
 
-  // Calculate total for today
+  /// Your share spent today
   double getTodaySpending() {
-    return getTodayExpenses().fold(0.0, (sum, expense) => sum + expense.amount);
+    return getTodayExpenses().fold(0.0, (sum, expense) => sum + expense.personalShare);
   }
 
-  // Calculate total for week
+  /// Your share spent this week
   double getWeekSpending() {
-    return getWeekExpenses().fold(0.0, (sum, expense) => sum + expense.amount);
+    return getWeekExpenses().fold(0.0, (sum, expense) => sum + expense.personalShare);
   }
 
-  // Calculate total for month
+  /// Your share spent this month
   double getMonthSpending() {
+    return getMonthExpenses().fold(0.0, (sum, expense) => sum + expense.personalShare);
+  }
+
+  // ─── TOTAL (GROSS) SPENDING (full transaction amounts) ────────────────
+
+  /// Sum of FULL AMOUNTS for the month (before splits)
+  double getMonthGrossSpending() {
     return getMonthExpenses().fold(0.0, (sum, expense) => sum + expense.amount);
   }
 
-  // Get spending by category
+  /// Sum of FULL AMOUNTS for today
+  double getTodayGrossSpending() {
+    return getTodayExpenses().fold(0.0, (sum, expense) => sum + expense.amount);
+  }
+
+  // ─── CATEGORY SPENDING ────────────────────────────────────────────────
+
+  /// By-category spending using personalShare
   Map<String, double> getSpendingByCategory() {
     Map<String, double> categoryTotals = {};
     
     for (var expense in _expenses) {
       categoryTotals[expense.category] = 
-        (categoryTotals[expense.category] ?? 0) + expense.amount;
+        (categoryTotals[expense.category] ?? 0) + expense.personalShare;
     }
     
     return categoryTotals;
   }
 
-  // Get all months that have expenses (for monthly analysis)
+  // ─── MONTH-BASED ANALYTICS ────────────────────────────────────────────
+
+  /// All unique months that have expenses
   List<DateTime> getMonthsWithExpenses() {
     Set<String> monthKeys = {};
     List<DateTime> months = [];
@@ -158,7 +176,7 @@ class ExpenseProvider with ChangeNotifier {
     return months;
   }
 
-  // Get expenses for a specific month
+  /// Expenses for a specific month
   List<Expense> getExpensesForMonth(DateTime month) {
     final monthStart = DateTime(month.year, month.month, 1);
     final monthEnd = DateTime(month.year, month.month + 1, 1);
@@ -169,34 +187,101 @@ class ExpenseProvider with ChangeNotifier {
     }).toList();
   }
 
-  // Get spending by month
+  /// Spending by month (personalShare)
   Map<DateTime, double> getSpendingByMonth() {
     Map<DateTime, double> monthlySpending = {};
     
     for (var expense in _expenses) {
       final monthKey = DateTime(expense.date.year, expense.date.month, 1);
-      monthlySpending[monthKey] = (monthlySpending[monthKey] ?? 0) + expense.amount;
+      monthlySpending[monthKey] = (monthlySpending[monthKey] ?? 0) + expense.personalShare;
     }
     
     return monthlySpending;
   }
 
-  // Get category breakdown for a specific month
+  /// Category breakdown for a specific month (personalShare)
   Map<String, double> getCategorySpendingForMonth(DateTime month) {
     final monthExpenses = getExpensesForMonth(month);
     Map<String, double> categoryTotals = {};
     
     for (var expense in monthExpenses) {
       categoryTotals[expense.category] = 
-        (categoryTotals[expense.category] ?? 0) + expense.amount;
+        (categoryTotals[expense.category] ?? 0) + expense.personalShare;
     }
     
     return categoryTotals;
   }
 
-  // Get total spending for a specific month
+  /// Total personal spending for a specific month
   double getSpendingForMonth(DateTime month) {
+    return getExpensesForMonth(month).fold(0.0, (sum, expense) => sum + expense.personalShare);
+  }
+
+  /// Total gross spending for a specific month (full amounts)
+  double getGrossSpendingForMonth(DateTime month) {
     return getExpensesForMonth(month).fold(0.0, (sum, expense) => sum + expense.amount);
+  }
+
+  // ─── SPLIT ANALYTICS ─────────────────────────────────────────────────
+
+  /// Get all expenses that have been split
+  List<Expense> get splitExpenses =>
+      _expenses.where((e) => e.isSplit).toList();
+
+  /// Get split expenses for a specific month
+  List<Expense> getSplitExpensesForMonth(DateTime month) {
+    return getExpensesForMonth(month).where((e) => e.isSplit).toList();
+  }
+
+  /// Total amount owed to the user (unsettled) — all time
+  double get totalUnsettled {
+    return splitExpenses.fold(0.0, (sum, e) => sum + e.splitInfo!.unsettledTotal);
+  }
+
+  /// Total amount already settled — all time
+  double get totalSettled {
+    return splitExpenses.fold(0.0, (sum, e) => sum + e.splitInfo!.settledTotal);
+  }
+
+  /// Friend-wise breakdown: { friendName: { 'owed': X, 'settled': Y } }
+  Map<String, Map<String, double>> getFriendWiseBreakdown() {
+    Map<String, Map<String, double>> result = {};
+
+    for (final expense in splitExpenses) {
+      for (final splitItem in expense.splitInfo!.splits) {
+        final name = splitItem.friendName;
+        result.putIfAbsent(name, () => {'owed': 0.0, 'settled': 0.0});
+
+        if (splitItem.settled) {
+          result[name]!['settled'] = result[name]!['settled']! + splitItem.amount;
+        } else {
+          result[name]!['owed'] = result[name]!['owed']! + splitItem.amount;
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /// Friend-wise breakdown for a specific month
+  Map<String, Map<String, double>> getFriendWiseBreakdownForMonth(DateTime month) {
+    Map<String, Map<String, double>> result = {};
+    final monthSplits = getSplitExpensesForMonth(month);
+
+    for (final expense in monthSplits) {
+      for (final splitItem in expense.splitInfo!.splits) {
+        final name = splitItem.friendName;
+        result.putIfAbsent(name, () => {'owed': 0.0, 'settled': 0.0});
+
+        if (splitItem.settled) {
+          result[name]!['settled'] = result[name]!['settled']! + splitItem.amount;
+        } else {
+          result[name]!['owed'] = result[name]!['owed']! + splitItem.amount;
+        }
+      }
+    }
+
+    return result;
   }
 
   // Clear error message

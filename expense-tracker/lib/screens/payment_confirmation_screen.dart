@@ -14,20 +14,31 @@ class PaymentConfirmationScreen extends StatelessWidget {
   }) : super(key: key);
 
   void _confirmPayment(BuildContext context) async {
-    // Save expense to database
-    await context.read<ExpenseProvider>().addExpense(expense);
+    try {
+      // Save expense to database
+      await context.read<ExpenseProvider>().addExpense(expense);
 
-    if (!context.mounted) return;
+      if (!context.mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Expense saved successfully!'),
-        backgroundColor: Color(0xFF10B981),
-      ),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Expense saved successfully!'),
+          backgroundColor: Color(0xFF10B981),
+        ),
+      );
 
-    // Navigate back to home (pop all screens)
-    Navigator.popUntil(context, (route) => route.isFirst);
+      // Navigate back to home (pop all screens)
+      Navigator.popUntil(context, (route) => route.isFirst);
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save expense: ${e.toString()}'),
+          backgroundColor: const Color(0xFFEF4444),
+        ),
+      );
+    }
   }
 
   void _cancelPayment(BuildContext context) {

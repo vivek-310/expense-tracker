@@ -113,6 +113,35 @@ export class UsersRepository {
         };
     }
 
+    async findAllWithExpenses(): Promise<any[]> {
+        const users = await this.prisma.user.findMany({
+            include: {
+                expenses: {
+                    select: {
+                        amount: true
+                    }
+                }
+            },
+            orderBy: {
+                createdAt: 'desc'
+            }
+        });
+
+        return users.map(user => {
+            const totalExpense = user.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+            return {
+                userId: user.userId,
+                email: user.email,
+                name: user.name || undefined,
+                currentPlan: user.currentPlan,
+                role: user.role,
+                status: user.status,
+                totalExpense,
+                createdAt: user.createdAt.toISOString()
+            };
+        });
+    }
+
     async updatePlan(userId: string, plan: SubscriptionPlan): Promise<void> {
         await this.prisma.user.update({
             where: { userId },

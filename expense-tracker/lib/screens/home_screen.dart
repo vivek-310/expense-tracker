@@ -128,6 +128,10 @@ class _HomeScreenState extends State<HomeScreen> {
             SliverToBoxAdapter(
               child: Consumer<ExpenseProvider>(
                 builder: (context, provider, child) {
+                  final personalSpending = provider.getMonthSpending();
+                  final grossSpending = provider.getMonthGrossSpending();
+                  final hasSplits = personalSpending != grossSpending;
+                  
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
@@ -151,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Total Spending',
+                            'Your Spending',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.white70,
@@ -160,13 +164,23 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '₹${provider.getMonthSpending().toStringAsFixed(2)}',
+                            '₹${personalSpending.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
                           ),
+                          if (hasSplits) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Total transacted: ₹${grossSpending.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white60,
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 20),
                           Row(
                             children: [

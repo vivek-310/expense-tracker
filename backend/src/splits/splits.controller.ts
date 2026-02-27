@@ -7,6 +7,7 @@ import {
     Param,
     UseGuards,
     Request,
+    NotFoundException,
 } from '@nestjs/common';
 import { SplitsService } from './splits.service';
 import { CreateSplitDto } from './dto/create-split.dto';
@@ -22,18 +23,20 @@ export class SplitsController {
     @Post()
     @RequireFeature(FeatureName.SPLIT)
     async createSplit(@Request() req, @Body() createDto: CreateSplitDto) {
-        const splits = await this.splitsService.createSplit(req.user.userId, createDto);
-        return { splits };
+        return this.splitsService.createSplit(req.user.userId, createDto);
     }
 
     @Get(':expenseId')
     @RequireFeature(FeatureName.SPLIT)
     async getSplitsByExpense(@Request() req, @Param('expenseId') expenseId: string) {
-        const splits = await this.splitsService.getSplitsByExpense(
+        const split = await this.splitsService.getSplitsByExpense(
             req.user.userId,
             expenseId,
         );
-        return { splits };
+        if (!split) {
+            throw new NotFoundException('Split not found');
+        }
+        return split;
     }
 
     @Patch(':expenseId/:friendId/settle')

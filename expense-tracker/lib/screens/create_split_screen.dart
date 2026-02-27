@@ -60,7 +60,8 @@ class _CreateSplitSheetState extends State<CreateSplitSheet> {
 
   void _applyEqualSplit() {
     if (_selectedExpense == null || _friends.isEmpty) return;
-    final each = _selectedExpense!.amount / _friends.length;
+    // Divide equally including the user themselves (+1)
+    final each = _selectedExpense!.amount / (_friends.length + 1);
     for (final f in _friends) {
       f.amountController.text = each.toStringAsFixed(2);
     }

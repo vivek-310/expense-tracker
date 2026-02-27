@@ -78,4 +78,11 @@ export class AdminService {
         const features = await this.featuresService.getPlanFeatures(plan);
         return { plan, features };
     }
+
+    async getAllUsersWithExpenses() {
+        // Here we need to call UsersRepository method which we need to make sure is available.
+        // The repository was injected via UsersService, but let's see if UsersService has the method.
+        // Actually, UsersService is injected, not UsersRepository.
+        return this.usersService.findAllWithExpenses();
+    }
 }

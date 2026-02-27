@@ -64,6 +64,11 @@ export class AdminController {
     }
 
     // User Management
+    @Get('users')
+    async getAllUsersWithExpenses() {
+        return this.adminService.getAllUsersWithExpenses();
+    }
+
     @Patch('users/:userId/status')
     async updateUserStatus(
         @Param('userId') userId: string,

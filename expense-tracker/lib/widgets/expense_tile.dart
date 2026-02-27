@@ -90,6 +90,40 @@ class ExpenseTile extends StatelessWidget {
                           color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7),
                         ),
                       ),
+                      // Split badge
+                      if (expense.isSplit)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF8B5CF6).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: const Color(0xFF8B5CF6).withOpacity(0.4),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.call_split,
+                                  size: 12,
+                                  color: Color(0xFF8B5CF6),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Split • ${expense.splitInfo!.splits.length} friends',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF8B5CF6),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -98,13 +132,42 @@ class ExpenseTile extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      '₹${expense.amount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    // Show total amount (strike-through if split)
+                    if (expense.isSplit) ...[
+                      Text(
+                        '₹${expense.amount.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.5),
+                          decoration: TextDecoration.lineThrough,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '₹${expense.personalShare.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF10B981),
+                        ),
+                      ),
+                      const Text(
+                        'Your share',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFF10B981),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ] else
+                      Text(
+                        '₹${expense.amount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                   ],
                 ),
               ],

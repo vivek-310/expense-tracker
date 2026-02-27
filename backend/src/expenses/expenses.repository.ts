@@ -2,6 +2,18 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { v4 as uuidv4 } from 'uuid';
 
+export interface SplitItemResponse {
+    friendId: string;
+    friendName: string;
+    amount: number;
+    settled: boolean;
+}
+
+export interface SplitResponse {
+    totalAmount: number;
+    splits: SplitItemResponse[];
+}
+
 export interface Expense {
     expenseId: string;
     userId: string;
@@ -12,11 +24,35 @@ export interface Expense {
     date: string;
     createdAt: string;
     updatedAt: string;
+    split?: SplitResponse;
 }
 
 @Injectable()
 export class ExpensesRepository {
     constructor(private prisma: PrismaService) { }
+
+    private mapExpense(expense: any): Expense {
+        const result: Expense = {
+            expenseId: expense.expenseId,
+            userId: expense.userId,
+            amount: expense.amount,
+            category: expense.category,
+            note: expense.note || undefined,
+            paymentMethod: expense.paymentMethod || undefined,
+            date: expense.date.toISOString(),
+            createdAt: expense.createdAt.toISOString(),
+            updatedAt: expense.updatedAt.toISOString(),
+        };
+
+        if (expense.split) {
+            result.split = {
+                totalAmount: expense.split.totalAmount,
+                splits: expense.split.splits as SplitItemResponse[],
+            };
+        }
+
+        return result;
+    }
 
     async create(expense: Omit<Expense, 'expenseId' | 'createdAt' | 'updatedAt' | 'date'>): Promise<Expense> {
         const expenseId = uuidv4();
@@ -51,21 +87,12 @@ export class ExpensesRepository {
                 expenseId,
                 userId,
             },
+            include: { split: true },
         });
 
         if (!expense) return null;
 
-        return {
-            expenseId: expense.expenseId,
-            userId: expense.userId,
-            amount: expense.amount,
-            category: expense.category,
-            note: expense.note || undefined,
-            paymentMethod: expense.paymentMethod || undefined,
-            date: expense.date.toISOString(),
-            createdAt: expense.createdAt.toISOString(),
-            updatedAt: expense.updatedAt.toISOString(),
-        };
+        return this.mapExpense(expense);
     }
 
     async findAllByUser(userId: string, startDate?: string, endDate?: string): Promise<Expense[]> {
@@ -80,22 +107,13 @@ export class ExpensesRepository {
 
         const expenses = await this.prisma.expense.findMany({
             where,
+            include: { split: true },
             orderBy: {
                 date: 'desc', // Newest first
             },
         });
 
-        return expenses.map(expense => ({
-            expenseId: expense.expenseId,
-            userId: expense.userId,
-            amount: expense.amount,
-            category: expense.category,
-            note: expense.note || undefined,
-            paymentMethod: expense.paymentMethod || undefined,
-            date: expense.date.toISOString(),
-            createdAt: expense.createdAt.toISOString(),
-            updatedAt: expense.updatedAt.toISOString(),
-        }));
+        return expenses.map(expense => this.mapExpense(expense));
     }
 
     async update(

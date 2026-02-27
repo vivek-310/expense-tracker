@@ -1,3 +1,57 @@
+class ExpenseSplitItem {
+  final String friendId;
+  final String friendName;
+  final double amount;
+  final bool settled;
+
+  ExpenseSplitItem({
+    required this.friendId,
+    required this.friendName,
+    required this.amount,
+    required this.settled,
+  });
+
+  factory ExpenseSplitItem.fromJson(Map<String, dynamic> json) {
+    return ExpenseSplitItem(
+      friendId: json['friendId']?.toString() ?? '',
+      friendName: json['friendName']?.toString() ?? 'Unknown',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      settled: json['settled'] as bool? ?? false,
+    );
+  }
+}
+
+class ExpenseSplitInfo {
+  final double totalAmount;
+  final List<ExpenseSplitItem> splits;
+
+  ExpenseSplitInfo({
+    required this.totalAmount,
+    required this.splits,
+  });
+
+  factory ExpenseSplitInfo.fromJson(Map<String, dynamic> json) {
+    final splitsJson = json['splits'] as List<dynamic>? ?? [];
+    return ExpenseSplitInfo(
+      totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0.0,
+      splits: splitsJson
+          .map((s) => ExpenseSplitItem.fromJson(s as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  /// Total amount friends owe
+  double get friendsTotal => splits.fold(0.0, (sum, s) => sum + s.amount);
+
+  /// Total unsettled (still owed to user)
+  double get unsettledTotal =>
+      splits.where((s) => !s.settled).fold(0.0, (sum, s) => sum + s.amount);
+
+  /// Total settled (already paid back)
+  double get settledTotal =>
+      splits.where((s) => s.settled).fold(0.0, (sum, s) => sum + s.amount);
+}
+
 class Expense {
   final int? id; // Local DB ID
   final String? expenseId; // Backend API ID
@@ -8,6 +62,7 @@ class Expense {
   final DateTime date;
   final String? note; // Changed from 'notes' to match backend
   final String? paymentMethod; // Added for backend
+  final ExpenseSplitInfo? splitInfo; // Split data from backend
 
   Expense({
     this.id,
@@ -19,7 +74,19 @@ class Expense {
     required this.date,
     this.note,
     this.paymentMethod,
+    this.splitInfo,
   });
+
+  /// The user's personal share of this expense.
+  /// If the expense is NOT split, this equals the full amount.
+  /// If the expense IS split, this is: totalAmount - sum(all friend shares).
+  double get personalShare {
+    if (splitInfo == null) return amount;
+    return amount - splitInfo!.friendsTotal;
+  }
+
+  /// Whether this expense has been split with friends
+  bool get isSplit => splitInfo != null;
 
   // Convert Expense to Map for local database storage
   Map<String, dynamic> toMap() {
@@ -60,6 +127,9 @@ class Expense {
       merchantName: json['merchantName']?.toString(),
       upiId: json['upiId']?.toString(),
       paymentMethod: json['paymentMethod']?.toString() ?? 'UPI',
+      splitInfo: json['split'] != null
+          ? ExpenseSplitInfo.fromJson(json['split'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -74,6 +144,7 @@ class Expense {
     DateTime? date,
     String? note,
     String? paymentMethod,
+    ExpenseSplitInfo? splitInfo,
   }) {
     return Expense(
       id: id ?? this.id,
@@ -85,6 +156,7 @@ class Expense {
       date: date ?? this.date,
       note: note ?? this.note,
       paymentMethod: paymentMethod ?? this.paymentMethod,
+      splitInfo: splitInfo ?? this.splitInfo,
     );
   }
 }
