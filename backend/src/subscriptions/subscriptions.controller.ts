@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { SubscriptionsService } from './subscriptions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ActivateSubscriptionDto } from './dto/activate-subscription.dto';
+import { ActivatePromoDto } from './dto/activate-promo.dto';
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
@@ -23,6 +24,17 @@ export class SubscriptionsController {
             req.user.userId,
             activateDto.months,
         );
+    }
+
+    @Post('promo')
+    async redeemPromo(
+        @Request() req,
+        @Body() promoDto: ActivatePromoDto,
+    ) {
+        if (promoDto.code.toUpperCase() === 'VIVEK') {
+            return this.subscriptionsService.activateProSubscription(req.user.userId, 12);
+        }
+        throw new BadRequestException('Invalid promo code');
     }
 
     @Post('cancel')

@@ -278,6 +278,28 @@ class ProfileScreen extends StatelessWidget {
                               ? const Color(0xFF10B981)
                               : const Color(0xFF94A3B8),
                         ),
+                        
+                        // Promo upgrade for all FREE users
+                        if (user.currentPlan.toUpperCase() == 'FREE')
+                          Padding(
+                            padding: const EdgeInsets.only(top: 24.0),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () => _showPromoCodeDialog(context, user.userId),
+                                icon: const Icon(Icons.rocket_launch, color: Colors.white),
+                                label: const Text('Upgrade with Promo Code', 
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF6366F1),
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -458,5 +480,101 @@ class ProfileScreen extends StatelessWidget {
         );
       }
     }
+  }
+
+  // Show dialog to enter promo code
+  Future<void> _showPromoCodeDialog(BuildContext context, String userId) async {
+    final TextEditingController promoController = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Enter Promo Code'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Have a promo code? Enter it below to unlock PRO features.'),
+              const SizedBox(height: 16),
+              TextField(
+                controller: promoController,
+                textCapitalization: TextCapitalization.characters,
+                decoration: InputDecoration(
+                  labelText: 'Promo Code',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  prefixIcon: const Icon(Icons.card_giftcard),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isLoading ? null : () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isLoading
+                  ? null
+                  : () async {
+                      final code = promoController.text.trim();
+                      if (code.isEmpty) return;
+
+                      setState(() => isLoading = true);
+
+                      try {
+                        await ApiService.post(
+                          ApiConfig.redeemPromo,
+                          {'code': code},
+                        );
+                        
+                        if (context.mounted) {
+                          // Refresh auth state to get updated user details (role, plan)
+                          await context.read<AuthProvider>().checkAuthStatus();
+                          
+                          Navigator.pop(context); // Close dialog
+                          
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('🎉 Promo code activated! Welcome to PRO.'),
+                              backgroundColor: Color(0xFF10B981),
+                              duration: Duration(seconds: 4),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setState(() => isLoading = false);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('❌ Failed: ${e.toString()}'),
+                              backgroundColor: const Color(0xFFEF4444),
+                              duration: const Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+              ),
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text('Redeem', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

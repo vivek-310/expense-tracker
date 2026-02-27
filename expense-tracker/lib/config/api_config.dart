@@ -5,7 +5,7 @@ class ApiConfig {
   // Example: static const String baseUrl = 'http://192.168.1.100:3000';
   
   // static const String baseUrl = 'http://192.168.1.39:3000'; // Your computer's IP (won't work due to AP Isolation)
-  static const String baseUrl = 'http://localhost:3000'; // Using ADB port forwarding
+  static const String baseUrl = 'https://expense-tracker-cft0.onrender.com'; // Deployed Render URL
   
   // API endpoints
   static const String login = '/auth/login';
@@ -15,6 +15,7 @@ class ApiConfig {
   static const String expenses = '/expenses';
   static const String features = '/features';
   static const String subscriptions = '/subscriptions';
+  static const String redeemPromo = '/subscriptions/promo';
   static const String splits = '/splits';
   static const String admin = '/admin';
 }
